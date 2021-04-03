@@ -15,7 +15,7 @@ pip install -u requirements.txt
 ```
 
 ## How to evaluate
-You can evaluate MLMs (BERT, RoBERTa and ALBERT) on AUL, [CPS](https://www.aclweb.org/anthology/2020.emnlp-main.154/) and [SSS](https://arxiv.org/abs/2004.09456)-intrasentence with following a command.
+You can evaluate MLMs (BERT, RoBERTa and ALBERT) on AUL, [CPS](https://www.aclweb.org/anthology/2020.emnlp-main.154/) and [SSS](https://arxiv.org/abs/2004.09456)-intrasentence with following command.
 ```
 ./evaluate.sh [bert, roberta, albert] [aul, cps, sss]
 ```
