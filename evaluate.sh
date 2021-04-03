@@ -1,5 +1,6 @@
-model=bert
-method=aul
+model=$1
+method=$2
+echo $model $method
 
 mkdir -p data
 mkdir -p result
