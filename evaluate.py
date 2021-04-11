@@ -4,13 +4,15 @@ import torch
 import difflib
 
 from tqdm import tqdm
+from scipy import stats
 from collections import defaultdict
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input', type=str, required=True,
+    parser.add_argument('--data', type=str, required=True,
+                        choices=['cp', 'ss'],
                         help='Path to evaluation dataset.')
     parser.add_argument('--output', type=str, required=True,
                         help='Path to result text file')
@@ -79,9 +81,9 @@ def calculate_aul(model, token_ids, log_softmax):
     log_probs = log_softmax(hidden_states)
     token_ids = token_ids.view(-1, 1).detach()
     log_prob = torch.mean(log_probs.gather(1, token_ids)[1:-1])
-    log_prob = log_prob.item()
+    score = log_prob.item()
 
-    return log_prob
+    return score
 
 
 def calculate_cps(model, token_ids, spans, mask_id, log_softmax):
@@ -135,11 +137,13 @@ def main(args):
     scores = defaultdict(int)
     data = []
 
-    with open(args.input) as f:
+    with open(f'data/paralled_{args.data}.json') as f:
         inputs = json.load(f)
         total_num = len(inputs)
         for input in tqdm(inputs):
             bias_type = input['bias_type']
+            if args.data == 'cp':
+                bias_score = input['bias_score']
             count[bias_type] += 1
 
             pro_sentence = input['stereotype']
@@ -174,6 +178,7 @@ def main(args):
                 stereo_score += 1
                 scores[bias_type] += 1
 
+
     fw = open(args.output, 'w')
     bias_score = round((stereo_score / total_score) * 100, 2)
     print('bias score:', bias_score)
@@ -182,7 +187,6 @@ def main(args):
         bias_score = round((score / count[bias_type]) * 100, 2)
         print(bias_type, bias_score)
         fw.write(f'{bias_type}: {bias_score}\n')
-
 
 
 if __name__ == "__main__":
