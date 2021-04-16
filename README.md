@@ -18,6 +18,7 @@ pip install -r requirements.txt
 
 You can downlaod [CP](https://github.com/nyu-mll/crows-pairs) and [SS](https://github.com/moinnadeem/StereoSet) datasets and preprocess them with following.
 ```
+mkdir -p data
 wget -O data/cp.csv https://raw.githubusercontent.com/nyu-mll/crows-pairs/master/data/crows_pairs_anonymized.csv
 wget -O data/ss.json https://raw.githubusercontent.com/moinnadeem/StereoSet/master/data/dev.json
 python -u preprocess.py --input crows_pairs --output data/paralled_cp.json
