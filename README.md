@@ -16,7 +16,7 @@ You can install all required packages with following command.
 pip install -r requirements.txt
 ```
 
-You can downlaod [CP](https://github.com/nyu-mll/crows-pairs) and [SS](https://github.com/moinnadeem/StereoSet) datasets and preprocess them with following commands.
+You can downlaod [CrowS-Pairs (CP)](https://github.com/nyu-mll/crows-pairs) and [StereoSet (SS)](https://github.com/moinnadeem/StereoSet) datasets and preprocess them with following commands.
 ```
 mkdir -p data
 wget -O data/cp.csv https://raw.githubusercontent.com/nyu-mll/crows-pairs/master/data/crows_pairs_anonymized.csv
@@ -27,7 +27,7 @@ python -u preprocess.py --input stereoset --output data/paralled_ss.json
 
 
 ## 🧑🏻‍💻 How to evaluate
-You can evaluate MLMs (BERT, RoBERTa and ALBERT) on AULA, AUL, [CPS](https://www.aclweb.org/anthology/2020.emnlp-main.154/) and [SSS](https://arxiv.org/abs/2004.09456)-intrasentence on CP and SS datasets with following command.
+You can evaluate MLMs (BERT, RoBERTa and ALBERT) on AULA, AUL, [CP score(CPS)](https://www.aclweb.org/anthology/2020.emnlp-main.154/) and [SS score(SSS)](https://arxiv.org/abs/2004.09456)-intrasentence on CP and SS datasets with following command.
 ```
 python evaluate.py --data [cp, ss] --output /Your/output/path --model [bert, roberta, albert] --method [aula, aul, cps, sss]
 ```
