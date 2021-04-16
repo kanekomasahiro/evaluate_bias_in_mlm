@@ -1,6 +1,6 @@
 # Evaluate bias in MLM
 
-Code for the paper: "Unmasking the Mask -- Evaluating Social Biases in Masked Language Models". If you use any part of this work, please cite the following citation:
+Code for the paper: [Unmasking the Mask -- Evaluating Social Biases in Masked Language Models](https://arxiv.org/abs/2104.07496). If you use any part of this work, please cite the following citation:
 ```
 @article{Kaneko:AUL:2021,
     title={Unmasking the Mask -- Evaluating Social Biases in Masked Language Models},
