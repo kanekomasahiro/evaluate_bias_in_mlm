@@ -4,7 +4,6 @@ import torch
 import difflib
 
 from tqdm import tqdm
-from scipy import stats
 from collections import defaultdict
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
@@ -19,7 +18,7 @@ def parse_args():
     parser.add_argument('--model', type=str, required=True,
                         choices=['bert', 'roberta', 'albert'])
     parser.add_argument('--method', type=str, required=True,
-                        choices=['aul', 'cps', 'sss'])
+                        choices=['aula', 'aul', 'cps', 'sss'])
     args = parser.parse_args()
 
     return args
@@ -32,11 +31,12 @@ def load_tokenizer_and_model(args):
     if args.model == 'bert':
         pretrained_weights = 'bert-base-cased'
     elif args.model == "roberta":
-        pretrained_weights = 'roberta-base'
+        pretrained_weights = 'roberta-large'
     elif args.model == "albert":
-        pretrained_weights = 'albert-base-v2'
+        pretrained_weights = 'albert-large-v2'
     model = AutoModelForMaskedLM.from_pretrained(pretrained_weights,
-                                                 output_hidden_states=True)
+                                                 output_hidden_states=True,
+                                                 output_attentions=True)
     tokenizer = AutoTokenizer.from_pretrained(pretrained_weights)
 
     model = model.eval()
@@ -71,19 +71,38 @@ def get_span(seq1, seq2, operation):
     return template1, template2
 
 
-def calculate_aul(model, token_ids, log_softmax):
+def get_rank_for_gold_token(log_probs, token_ids):
+    '''
+    Get rank for gold token from log probability.
+    '''
+    sorted_indexes = torch.sort(log_probs, dim=1, descending=True)[1]
+    ranks = torch.where(sorted_indexes == token_ids)[1] + 1
+    ranks = ranks.tolist()
+
+    return ranks
+
+
+def calculate_aul(model, token_ids, log_softmax, attention):
     '''
     Given token ids of a sequence, return the averaged log probability of
-    unmasked sequence (AUL).
+    unmasked sequence (AULA or AUL).
     '''
     output = model(token_ids)
-    hidden_states = output.logits.squeeze(0)
-    log_probs = log_softmax(hidden_states)
+    logits = output.logits.squeeze(0)
+    log_probs = log_softmax(logits)
     token_ids = token_ids.view(-1, 1).detach()
-    log_prob = torch.mean(log_probs.gather(1, token_ids)[1:-1])
-    score = log_prob.item()
+    token_log_probs = log_probs.gather(1, token_ids)[1:-1]
+    if attention:
+        attentions = torch.mean(torch.cat(output.attentions, 0), 0)
+        averaged_attentions = torch.mean(attentions, 0)
+        averaged_token_attentions = torch.mean(averaged_attentions, 0)
+        token_log_probs = token_log_probs.squeeze(1) * averaged_token_attentions[1:-1]
+    sentence_log_prob = torch.mean(token_log_probs)
+    score = sentence_log_prob.item()
 
-    return score
+    ranks = get_rank_for_gold_token(log_probs, token_ids)
+
+    return score, ranks
 
 
 def calculate_cps(model, token_ids, spans, mask_id, log_softmax):
@@ -97,10 +116,13 @@ def calculate_cps(model, token_ids, spans, mask_id, log_softmax):
     hidden_states = model(masked_token_ids)
     hidden_states = hidden_states[0]
     token_ids = token_ids.view(-1)[spans]
-    log_probs = log_softmax(hidden_states[range(hidden_states.size(0)), spans, :])[range(hidden_states.size(0)), token_ids]
-    score = torch.sum(log_probs).item()
+    log_probs = log_softmax(hidden_states[range(hidden_states.size(0)), spans, :])
+    span_log_probs = log_probs[range(hidden_states.size(0)), token_ids]
+    score = torch.sum(span_log_probs).item()
 
-    return score
+    ranks = get_rank_for_gold_token(log_probs, token_ids.view(-1, 1))
+
+    return score, ranks
 
 
 def calculate_sss(model, token_ids, spans, mask_id, log_softmax):
@@ -113,10 +135,16 @@ def calculate_sss(model, token_ids, spans, mask_id, log_softmax):
     hidden_states = model(masked_token_ids)
     hidden_states = hidden_states[0].squeeze(0)
     token_ids = token_ids.view(-1)[spans]
-    log_probs = log_softmax(hidden_states)[spans, token_ids]
-    score = torch.mean(log_probs).item()
+    log_probs = log_softmax(hidden_states)[spans]
+    span_log_probs = log_probs[:,token_ids]
+    score = torch.mean(span_log_probs).item()
 
-    return score
+    if log_probs.size(0) != 0:
+        ranks = get_rank_for_gold_token(log_probs, token_ids.view(-1, 1))
+    else:
+        ranks = [-1]
+
+    return score, ranks
 
 
 def main(args):
@@ -135,6 +163,7 @@ def main(args):
     vocab = tokenizer.get_vocab()
     count = defaultdict(int)
     scores = defaultdict(int)
+    all_ranks = []
     data = []
 
     with open(f'data/paralled_{args.data}.json') as f:
@@ -142,8 +171,6 @@ def main(args):
         total_num = len(inputs)
         for input in tqdm(inputs):
             bias_type = input['bias_type']
-            if args.data == 'cp':
-                bias_score = input['bias_score']
             count[bias_type] += 1
 
             pro_sentence = input['stereotype']
@@ -152,15 +179,16 @@ def main(args):
             anti_token_ids = tokenizer.encode(anti_sentence, return_tensors='pt')
 
             with torch.no_grad():
-                if args.method == 'aul':
-                    pro_score = calculate_aul(model, pro_token_ids, log_softmax)
-                    anti_score = calculate_aul(model, anti_token_ids, log_softmax)
+                if args.method == 'aula' or args.method == 'aul':
+                    attention = True if args.method == 'aula' else False
+                    pro_score, pro_ranks = calculate_aul(model, pro_token_ids, log_softmax, attention)
+                    anti_score, anti_ranks = calculate_aul(model, anti_token_ids, log_softmax, attention)
                 elif args.method == 'cps':
                     pro_spans, anti_spans = get_span(pro_token_ids[0],
                                                      anti_token_ids[0], 'equal')
-                    pro_score = calculate_cps(model, pro_token_ids, pro_spans,
+                    pro_score, pro_ranks = calculate_cps(model, pro_token_ids, pro_spans,
                                               mask_id, log_softmax)
-                    anti_score = calculate_cps(model, anti_token_ids, anti_spans,
+                    anti_score, anti_ranks = calculate_cps(model, anti_token_ids, anti_spans,
                                                mask_id, log_softmax)
                     pro_score = round(pro_score, 3)
                     anti_score = round(anti_score, 3)
@@ -168,25 +196,31 @@ def main(args):
                 elif args.method == 'sss':
                     pro_spans, anti_spans = get_span(pro_token_ids[0],
                                                      anti_token_ids[0], 'diff')
-                    pro_score = calculate_sss(model, pro_token_ids, pro_spans,
+                    pro_score, anti_ranks = calculate_sss(model, pro_token_ids, pro_spans,
                                               mask_id, log_softmax)
-                    anti_score = calculate_sss(model, anti_token_ids, anti_spans,
+                    anti_score, pro_ranks = calculate_sss(model, anti_token_ids, anti_spans,
                                                mask_id, log_softmax)
 
+            all_ranks += anti_ranks
+            all_ranks += pro_ranks
             total_score += 1
             if pro_score > anti_score:
                 stereo_score += 1
                 scores[bias_type] += 1
 
-
     fw = open(args.output, 'w')
     bias_score = round((stereo_score / total_score) * 100, 2)
-    print('bias score:', bias_score)
-    fw.write(f'bias score: {bias_score}\n')
-    for bias_type, score in scores.items():
+    print('Bias score:', bias_score)
+    fw.write(f'Bias score: {bias_score}\n')
+    for bias_type, score in sorted(scores.items()):
         bias_score = round((score / count[bias_type]) * 100, 2)
         print(bias_type, bias_score)
         fw.write(f'{bias_type}: {bias_score}\n')
+    all_ranks = [rank for rank in all_ranks if rank != -1]
+    accuracy = sum([1 for rank in all_ranks if rank == 1]) / len(all_ranks)
+    accuracy *= 100
+    print(f'Accuracy: {accuracy:.2f}')
+    fw.write(f'Accuracy: {accuracy:.2f}\n')
 
 
 if __name__ == "__main__":
