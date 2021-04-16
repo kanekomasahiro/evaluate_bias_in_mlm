@@ -14,6 +14,9 @@ def parse_args():
 
 
 def preprocess_crows_pairs():
+    '''
+    Extract stereotypical and anti-stereotypical sentences from crows-paris.
+    '''
     data = []
 
     with open('data/cp.csv') as f:
@@ -21,17 +24,21 @@ def preprocess_crows_pairs():
         for row in reader:
             example = {}
             direction = row['stereo_antistereo']
+            example['direction'] = direction
             example['bias_type'] = row['bias_type']
 
             example['stereotype'] = row['sent_more']
             example['anti-stereotype'] = row['sent_less']
-            example['bias_score'] = sum([1 for annotation in ast.literal_eval(row['annotations']) if len(annotation) > 0])
             data.append(example)
 
     return data
 
 
 def preprocess_stereoset():
+    '''
+    Extract stereotypical and anti-stereotypical sentences from StereoSet.
+    '''
+    data = []
     data = []
 
     with open('data/ss.json') as f:
