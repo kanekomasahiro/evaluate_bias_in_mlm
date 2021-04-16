@@ -13,7 +13,7 @@ Code for the paper: "Unmasking the Mask -- Evaluating Social Biases in Masked La
 
 You can install all required packages with following.
 ```
-pip install -u requirements.txt
+pip install -r requirements.txt
 ```
 
 You can downlaod [CP](https://github.com/nyu-mll/crows-pairs) and [SS](https://github.com/moinnadeem/StereoSet) datasets and preprocess them with following.
