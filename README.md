@@ -1,4 +1,4 @@
-# evaluate_mlm
+# evaluate_bias_in_mlm
 
 Code for the paper: "Unmasking the Mask -- Evaluating Social Biases in Masked Language Models". If you use any part of this work, please cite the following citation:
 ```
