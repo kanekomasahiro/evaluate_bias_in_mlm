@@ -27,7 +27,7 @@ python -u preprocess.py --input stereoset --output data/paralled_ss.json
 
 
 ## 🧑🏻‍💻 How to evaluate
-You can evaluate MLMs (BERT, RoBERTa and ALBERT) on AULA, AUL, [CP score(CPS)](https://www.aclweb.org/anthology/2020.emnlp-main.154/) and [SS score(SSS)](https://arxiv.org/abs/2004.09456)-intrasentence on CP and SS datasets with following command.
+You can evaluate MLMs (BERT, RoBERTa and ALBERT) on AULA, AUL, [CP score(CPS)](https://www.aclweb.org/anthology/2020.emnlp-main.154/) and [SS score(SSS)](https://arxiv.org/abs/2004.09456)-intrasentence on CP and SS datasets with following command. You also can specify pre-trained MLM path using `--model`.
 ```
 python evaluate.py --data [cp, ss] --output /Your/output/path --model [bert, roberta, albert] --method [aula, aul, cps, sss]
 ```
