@@ -15,8 +15,7 @@ def parse_args():
                         help='Path to evaluation dataset.')
     parser.add_argument('--output', type=str, required=True,
                         help='Path to result text file')
-    parser.add_argument('--model', type=str, required=True,
-                        choices=['bert', 'roberta', 'albert'])
+    parser.add_argument('--model', type=str, required=True)
     parser.add_argument('--method', type=str, required=True,
                         choices=['aula', 'aul', 'cps', 'sss'])
     args = parser.parse_args()
@@ -34,6 +33,8 @@ def load_tokenizer_and_model(args):
         pretrained_weights = 'roberta-large'
     elif args.model == "albert":
         pretrained_weights = 'albert-large-v2'
+    else:
+        pretrained_weights = args.model
     model = AutoModelForMaskedLM.from_pretrained(pretrained_weights,
                                                  output_hidden_states=True,
                                                  output_attentions=True)
