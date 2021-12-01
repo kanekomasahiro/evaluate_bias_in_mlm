@@ -2,11 +2,13 @@
 
 Code for the paper: [Unmasking the Mask -- Evaluating Social Biases in Masked Language Models](https://arxiv.org/abs/2104.07496). If you use any part of this work, please cite the following citation:
 ```
-@article{Kaneko:AUL:2021,
-    title={Unmasking the Mask -- Evaluating Social Biases in Masked Language Models},
-    author={Masahiro Kaneko and Danushka Bollegala},
-    journal={arXiv},
-    year={2021}
+@InProceedings{Kaneko:AUL:2022,
+  author={Masahiro Kaneko and Danushka Bollegala},
+  title={Unmasking the Mask -- Evaluating Social Biases in Masked Language Models},
+  booktitle = {Proceedings of the 36th AAAI Conference on Artificial Intelligence},
+  year      = {2022},
+  month     = {February},
+  address   = {Vancouver, BC, Canada}
 }
 ```
 ## 🛠 Setup
